@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  targetNamespace="http://camunda.org/examples">
+
+  <bpmn:process id="orderProcess"
+                name="Order Process"
+                isExecutable="true"
+                camunda:historyTimeToLive="180">
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="startEvent" name="Order Received"/>
+
+    <!-- Step 1: Payment Task -->
+    <bpmn:serviceTask id="paymentTask"
+                      name="Payment Service"
+                      camunda:delegateExpression="${paymentDelegate}"/>
+
+    <!-- Exclusive Gateway for Payment Decision -->
+    <bpmn:exclusiveGateway id="paymentGateway" name="Payment Approved?"/>
+
+    <!-- Step 2: Kitchen Task -->
+    <bpmn:serviceTask id="kitchenTask"
+                      name="Kitchen Service"
+                      camunda:delegateExpression="${kitchenDelegate}"/>
+
+    <!-- Step 3: Delivery Task -->
+    <bpmn:serviceTask id="deliveryTask"
+                      name="Delivery Service"
+                      camunda:delegateExpression="${deliveryDelegate}"/>
+
+    <!-- Success End Event -->
+    <bpmn:endEvent id="endEvent" name="Order Delivered"/>
+
+    <!-- Failure Cancel Task -->
+    <bpmn:serviceTask id="cancelTask"
+                      name="Cancel Order"
+                      camunda:delegateExpression="${cancelDelegate}"/>
+
+    <!-- Cancelled End Event -->
+    <bpmn:endEvent id="cancelEndEvent" name="Order Cancelled"/>
+
+    <!-- Pending End Event -->
+    <bpmn:endEvent id="pendingEndEvent" name="Payment Pending"/>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="flow_start_to_payment" sourceRef="startEvent" targetRef="paymentTask"/>
+    <bpmn:sequenceFlow id="flow_payment_to_gateway" sourceRef="paymentTask" targetRef="paymentGateway"/>
+
+    <!-- Conditional Flow: Payment Success -->
+    <bpmn:sequenceFlow id="flow_gateway_to_kitchen" name="Payment Success" sourceRef="paymentGateway" targetRef="kitchenTask">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${paymentStatus == 'SUCCESS'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Conditional Flow: Payment Failure -->
+    <bpmn:sequenceFlow id="flow_gateway_to_cancel" name="Payment Failed" sourceRef="paymentGateway" targetRef="cancelTask">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${paymentStatus == 'FAILED'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Conditional Flow: Payment Pending -->
+    <bpmn:sequenceFlow id="flow_gateway_to_pending" name="Payment Pending" sourceRef="paymentGateway" targetRef="pendingEndEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${paymentStatus == 'PENDING'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="flow_kitchen_to_delivery" sourceRef="kitchenTask" targetRef="deliveryTask"/>
+    <bpmn:sequenceFlow id="flow_delivery_to_end" sourceRef="deliveryTask" targetRef="endEvent"/>
+    <bpmn:sequenceFlow id="flow_cancel_to_end" sourceRef="cancelTask" targetRef="cancelEndEvent"/>
+
+  </bpmn:process>
+
+</bpmn:definitions>

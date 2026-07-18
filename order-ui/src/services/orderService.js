@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080/api/orders";
+const rawUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080/api/orders";
+const BASE_URL = rawUrl.endsWith("/api/orders") ? rawUrl : (rawUrl.endsWith("/") ? `${rawUrl}api/orders` : `${rawUrl}/api/orders`);
 
 export const createOrder = (orderData) => {
   return axios.post(BASE_URL, orderData);

@@ -239,7 +239,8 @@ function PlaceOrder() {
     const currentCartItems = [...cartItems];
 
     try {
-      const apiEndpoint = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080/api/orders";
+      const rawUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080/api/orders";
+      const apiEndpoint = rawUrl.endsWith("/api/orders") ? rawUrl : (rawUrl.endsWith("/") ? `${rawUrl}api/orders` : `${rawUrl}/api/orders`);
       const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

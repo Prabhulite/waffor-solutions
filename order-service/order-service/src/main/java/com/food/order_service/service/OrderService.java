@@ -33,10 +33,14 @@ public class OrderService {
         // Print the specified log statement
         System.out.println("[OrderService]    Order #" + savedOrder.getId() + " - Status: PLACED, Workflow started");
 
-        // Send ONLY the raw orderId to ActiveMQ to initiate Camunda asynchronously
-        orderProducer.sendOrderCreatedMessage(
-                String.valueOf(savedOrder.getId())
-        );
+        // Send ONLY the raw orderId to ActiveMQ to initiate Camunda asynchronously (gracefully fallback if offline)
+        try {
+            orderProducer.sendOrderCreatedMessage(
+                    String.valueOf(savedOrder.getId())
+            );
+        } catch (Exception e) {
+            System.out.println("[OrderService]    Warning: ActiveMQ is offline. Order #" + savedOrder.getId() + " saved to DB, but workflow event not sent: " + e.getMessage());
+        }
 
         return savedOrder;
     }
@@ -77,7 +81,11 @@ public class OrderService {
 
         System.out.println("[OrderService]    Order #" + id + " - Payment APPROVED by User, starting workflow");
 
-        orderProducer.sendOrderCreatedMessage(String.valueOf(savedOrder.getId()));
+        try {
+            orderProducer.sendOrderCreatedMessage(String.valueOf(savedOrder.getId()));
+        } catch (Exception e) {
+            System.out.println("[OrderService]    Warning: ActiveMQ is offline. Payment approved for Order #" + id + ", but workflow event not sent: " + e.getMessage());
+        }
 
         return savedOrder;
     }
